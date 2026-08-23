@@ -7,11 +7,8 @@ import { protect } from "../middleware/auth.js";
 const router = express.Router();
 
 const DEFAULT_USERS = [
-  { _id: "64b1f0010000000000000001", name: "Ibrahim Musa", email: "ibrahim@hdi.org", password: "password123", role: "user", dept: "Operations", isActive: true },
-  { _id: "64b1f0010000000000000002", name: "Chidinma Okoro", email: "chidinma@hdi.org", password: "password123", role: "financial_officer", dept: "Finance & Accounts", isActive: true },
-  { _id: "64b1f0010000000000000003", name: "Samuel Ekong", email: "samuel@hdi.org", password: "password123", role: "chairman", dept: "Executive Office", isActive: true },
-  { _id: "64b1f0010000000000000004", name: "Funmi Adisa", email: "funmi@hdi.org", password: "password123", role: "accountant", dept: "Accounts", isActive: true },
-  { _id: "64b1f0010000000000000005", name: "Super Admin", email: "admin@hdi.org", password: "password123", role: "admin", dept: "IT Administration", isActive: true },
+  { _id: "64b1f0010000000000000001", name: "Super Admin", email: "admin@hdi.org", password: "password123", role: "admin", dept: "Administration", isActive: true },
+  { _id: "64b1f0010000000000000002", name: "Chairman Board", email: "chairman@hdi.org", password: "password123", role: "chairman", dept: "Executive Office", isActive: true },
 ];
 
 const generateToken = (id) => {

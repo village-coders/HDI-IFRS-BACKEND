@@ -9,8 +9,8 @@ router.use(protect);
 
 // @route   GET /api/users
 // @desc    Get all users
-// @access  Private (Admin & FO)
-router.get("/", authorize("admin", "financial_officer"), async (req, res) => {
+// @access  Private (Admin only)
+router.get("/", authorize("admin"), async (req, res) => {
   try {
     const users = await User.find({}).sort({ createdAt: -1 });
     res.json(users);

@@ -34,7 +34,7 @@ const claimSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["new", "pending", "verified", "further_approval", "approved_for_payment", "paid", "rejected"],
+      enum: ["new", "verified", "approved_for_payment", "paid", "rejected"],
       default: "new",
     },
     companyName: {

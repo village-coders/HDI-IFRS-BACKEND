@@ -7,15 +7,11 @@ const router = express.Router();
 router.use(protect);
 
 // @route   GET /api/claims
-// @desc    Get claims (filtered by user role if normal staff user)
+// @desc    Get all claims
 // @access  Private
 router.get("/", async (req, res) => {
   try {
-    let query = {};
-    if (req.user.role === "user") {
-      query = { claimantName: req.user.name };
-    }
-    const claims = await Claim.find(query).sort({ createdAt: -1 });
+    const claims = await Claim.find({}).sort({ createdAt: -1 });
     res.json(claims);
   } catch (error) {
     res.status(500).json({ message: error.message });
