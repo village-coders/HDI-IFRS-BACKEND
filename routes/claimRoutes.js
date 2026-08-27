@@ -20,9 +20,12 @@ router.get("/", async (req, res) => {
 
 // @route   POST /api/claims
 // @desc    Create new claim
-// @access  Private
+// @access  Private (Admin only)
 router.post("/", async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Only Admin is authorized to create claims." });
+    }
     const {
       id,
       claimant,
@@ -76,18 +79,50 @@ router.post("/", async (req, res) => {
 // @access  Private
 router.put("/:id/status", async (req, res) => {
   try {
-    const { status, note } = req.body;
+    const { status: newStatus, note } = req.body;
     const claim = await Claim.findOne({ claimId: req.params.id }) || await Claim.findById(req.params.id);
 
     if (!claim) {
       return res.status(404).json({ message: "Claim not found" });
     }
 
-    claim.status = status;
+    const currentStatus = claim.status;
+    const userRole = req.user.role;
+
+    if (currentStatus === newStatus) {
+      return res.status(400).json({ message: `Claim is already in status '${newStatus}'` });
+    }
+
+    if (newStatus === "verified") {
+      if (currentStatus !== "new") {
+        return res.status(400).json({ message: `Invalid state transition: Cannot transition from '${currentStatus}' to 'verified'.` });
+      }
+      if (userRole !== "admin") {
+        return res.status(403).json({ message: "Access denied: Only Admins can verify claims." });
+      }
+    } else if (newStatus === "approved_for_payment" || newStatus === "rejected") {
+      if (currentStatus !== "verified") {
+        return res.status(400).json({ message: `Invalid state transition: Cannot transition from '${currentStatus}' to '${newStatus}'.` });
+      }
+      if (userRole !== "chairman") {
+        return res.status(403).json({ message: "Access denied: Only Chairman can approve/reject claims." });
+      }
+    } else if (newStatus === "paid") {
+      if (currentStatus !== "approved_for_payment") {
+        return res.status(400).json({ message: `Invalid state transition: Cannot transition from '${currentStatus}' to 'paid'.` });
+      }
+      if (userRole !== "admin") {
+        return res.status(403).json({ message: "Access denied: Only Admins can mark claims as paid." });
+      }
+    } else {
+      return res.status(400).json({ message: `Invalid target status '${newStatus}' or state transition is not allowed.` });
+    }
+
+    claim.status = newStatus;
     if (note) claim.note = note;
 
     claim.history.push({
-      action: `Status updated to ${status}`,
+      action: `Status updated to ${newStatus}`,
       by: req.user.name,
       role: req.user.role,
       note: note || "",

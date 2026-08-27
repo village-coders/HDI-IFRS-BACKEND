@@ -13,12 +13,17 @@ export const protect = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     try {
       token = req.headers.authorization.split(" ")[1];
+      
+      if (!process.env.JWT_SECRET && process.env.NODE_ENV === "production") {
+        console.warn("WARNING: JWT_SECRET environment variable is missing in production. Falling back to default insecure key!");
+      }
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET || "hdi_ifrs_secure_jwt_secret_key_2026_x892");
 
       if (mongoose.connection.readyState === 1) {
         req.user = await User.findById(decoded.id).select("-password");
       } else {
-        req.user = DEFAULT_USERS.find(u => u._id === decoded.id) || DEFAULT_USERS[4];
+        req.user = DEFAULT_USERS.find(u => u._id === decoded.id);
       }
 
       if (!req.user) {

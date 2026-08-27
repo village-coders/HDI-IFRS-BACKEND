@@ -49,8 +49,8 @@ const seedInitialData = async () => {
     if (userCount === 0) {
       console.log("Seeding initial default users into MongoDB...");
       const defaultUsers = [
-        { name: "Super Admin", email: "admin@hdi.org", password: "password123", role: "admin", dept: "Administration" },
-        { name: "Chairman Board", email: "chairman@hdi.org", password: "password123", role: "chairman", dept: "Executive Office" },
+        { name: "Super Admin", email: "admin@hdi.org", password: "Password123", role: "admin", dept: "Administration" },
+        { name: "Chairman Board", email: "chairman@hdi.org", password: "Password123", role: "chairman", dept: "Executive Office" },
       ];
 
       for (const userData of defaultUsers) {

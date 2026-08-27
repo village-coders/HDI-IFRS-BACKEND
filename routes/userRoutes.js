@@ -35,8 +35,8 @@ router.post("/", authorize("admin"), async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password: password || "password123",
-      role: role || "user",
+      password: password || "Password123",
+      role: role || "admin",
       dept: dept || "Operations",
     });
 

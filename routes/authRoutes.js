@@ -7,8 +7,8 @@ import { protect } from "../middleware/auth.js";
 const router = express.Router();
 
 const DEFAULT_USERS = [
-  { _id: "64b1f0010000000000000001", name: "Super Admin", email: "admin@hdi.org", password: "password123", role: "admin", dept: "Administration", isActive: true },
-  { _id: "64b1f0010000000000000002", name: "Chairman Board", email: "chairman@hdi.org", password: "password123", role: "chairman", dept: "Executive Office", isActive: true },
+  { _id: "64b1f0010000000000000001", name: "Super Admin", email: "admin@hdi.org", password: "Password123", role: "admin", dept: "Administration", isActive: true },
+  { _id: "64b1f0010000000000000002", name: "Chairman Board", email: "chairman@hdi.org", password: "Password123", role: "chairman", dept: "Executive Office", isActive: true },
 ];
 
 const generateToken = (id) => {
@@ -41,7 +41,7 @@ router.post("/login", async (req, res) => {
     } else {
       console.warn("MongoDB offline: using local development fallback credentials check");
       const defaultUser = DEFAULT_USERS.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-      if (defaultUser && (password === defaultUser.password || password === "password123")) {
+      if (defaultUser && (password === defaultUser.password || password === "Password123")) {
         user = defaultUser;
       }
     }
