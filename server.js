@@ -43,39 +43,39 @@ app.get("/api/health", (req, res) => {
 });
 
 // Seed default users and sample data if database is empty
-const seedInitialData = async () => {
-  try {
-    const userCount = await User.countDocuments();
-    if (userCount === 0) {
-      console.log("Seeding initial default users into MongoDB...");
-      const defaultUsers = [
-        { name: "Super Admin", email: "admin@hdi.org", password: "Password123", role: "admin", dept: "Administration" },
-        { name: "Chairman Board", email: "chairman@hdi.org", password: "Password123", role: "chairman", dept: "Executive Office" },
-      ];
+// const seedInitialData = async () => {
+//   try {
+//     const userCount = await User.countDocuments();
+//     if (userCount === 0) {
+//       console.log("Seeding initial default users into MongoDB...");
+//       const defaultUsers = [
+//         { name: "Super Admin", email: "admin@hdi.org", password: "Password123", role: "admin", dept: "Administration" },
+//         { name: "Chairman Board", email: "chairman@hdi.org", password: "Password123", role: "chairman", dept: "Executive Office" },
+//       ];
 
-      for (const userData of defaultUsers) {
-        await User.create(userData);
-      }
-      console.log("Default users created successfully.");
-    }
+//       for (const userData of defaultUsers) {
+//         await User.create(userData);
+//       }
+//       console.log("Default users created successfully.");
+//     }
 
-    const claimCount = await Claim.countDocuments();
-    if (claimCount === 0) {
-      console.log("Seeding sample claims into MongoDB...");
-      const sampleClaims = [
-        { claimId: "MDOS-10049281", claimantName: "Super Admin", dept: "Administration", title: "Office IT & Supplies", amount: 45000, date: "2026-08-20", status: "new", note: "Initial claim submission for review." },
-        { claimId: "MDOS-20491823", claimantName: "Super Admin", dept: "Administration", title: "Project Audit Logistics", amount: 120000, date: "2026-08-18", status: "verified", note: "Verified by Admin. Submitted for Chairman Review." },
-        { claimId: "MDOS-48201938", claimantName: "Super Admin", dept: "Administration", title: "Office Consumables & Equipment", amount: 68000, date: "2026-08-12", status: "approved_for_payment", note: "Reviewed and approved by Chairman. Ready for disbursement." },
-        { claimId: "MDOS-59302910", claimantName: "Super Admin", dept: "Administration", title: "Field Operations & Fuel", amount: 35000, date: "2026-08-05", status: "paid", note: "Payment disbursed successfully." },
-      ];
+//     const claimCount = await Claim.countDocuments();
+//     if (claimCount === 0) {
+//       console.log("Seeding sample claims into MongoDB...");
+//       const sampleClaims = [
+//         { claimId: "MDOS-10049281", claimantName: "Super Admin", dept: "Administration", title: "Office IT & Supplies", amount: 45000, date: "2026-08-20", status: "new", note: "Initial claim submission for review." },
+//         { claimId: "MDOS-20491823", claimantName: "Super Admin", dept: "Administration", title: "Project Audit Logistics", amount: 120000, date: "2026-08-18", status: "verified", note: "Verified by Admin. Submitted for Chairman Review." },
+//         { claimId: "MDOS-48201938", claimantName: "Super Admin", dept: "Administration", title: "Office Consumables & Equipment", amount: 68000, date: "2026-08-12", status: "approved_for_payment", note: "Reviewed and approved by Chairman. Ready for disbursement." },
+//         { claimId: "MDOS-59302910", claimantName: "Super Admin", dept: "Administration", title: "Field Operations & Fuel", amount: 35000, date: "2026-08-05", status: "paid", note: "Payment disbursed successfully." },
+//       ];
 
-      await Claim.insertMany(sampleClaims);
-      console.log("Sample claims created successfully.");
-    }
-  } catch (err) {
-    console.error("Error seeding initial data:", err.message);
-  }
-};
+//       await Claim.insertMany(sampleClaims);
+//       console.log("Sample claims created successfully.");
+//     }
+//   } catch (err) {
+//     console.error("Error seeding initial data:", err.message);
+//   }
+// };
 
 const PORT = process.env.PORT || 5000;
 
@@ -95,7 +95,7 @@ const connectDB = async () => {
     console.log(`Connecting to MongoDB...`);
     await mongoose.connect(mongoUri, { dbName: "IFRS" });
     console.log("Connected to MongoDB successfully!");
-    await seedInitialData();
+    // await seedInitialData();
   } catch (err) {
     console.error("MongoDB Connection Error:", err.message);
     console.warn("Please verify MONGO_URI in your backend/.env file and ensure your Ubuntu MongoDB server is accessible.");
