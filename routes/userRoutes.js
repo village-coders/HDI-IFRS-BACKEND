@@ -9,11 +9,21 @@ router.use(protect);
 
 // @route   GET /api/users
 // @desc    Get all users
-// @access  Private (Admin only)
-router.get("/", authorize("admin"), async (req, res) => {
+// @access  Private (Authenticated users)
+router.get("/", async (req, res) => {
   try {
     const users = await User.find({}).sort({ createdAt: -1 });
-    res.json(users);
+    res.json(
+      users.map((u) => ({
+        _id: u._id,
+        name: u.name,
+        username: u.username || (u.email ? u.email.split("@")[0] : ""),
+        email: u.email,
+        role: u.role,
+        dept: u.dept,
+        isActive: u.isActive,
+      }))
+    );
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -24,25 +34,32 @@ router.get("/", authorize("admin"), async (req, res) => {
 // @access  Private (Admin only)
 router.post("/", authorize("admin"), async (req, res) => {
   try {
-    const { name, email, password, role, dept } = req.body;
+    const { name, email, username, password, role, dept } = req.body;
 
-    const userExists = await User.findOne({ email });
+    const userEmail = (email || "").trim().toLowerCase();
+    const userUsername = (username || userEmail.split("@")[0] || (name || "").replace(/\s+/g, "")).trim().toLowerCase();
+
+    const userExists = await User.findOne({
+      $or: [{ email: userEmail }, { username: userUsername }],
+    });
 
     if (userExists) {
-      return res.status(400).json({ message: "User already exists with this email" });
+      return res.status(400).json({ message: "User already exists with this email or username" });
     }
 
     const user = await User.create({
       name,
-      email,
+      email: userEmail,
+      username: userUsername,
       password: password || "Password123",
-      role: role || "admin",
+      role: role || "account_officer",
       dept: dept || "Operations",
     });
 
     res.status(201).json({
       _id: user._id,
       name: user.name,
+      username: user.username,
       email: user.email,
       role: user.role,
       dept: user.dept,
@@ -65,7 +82,10 @@ router.put("/:id", authorize("admin"), async (req, res) => {
     }
 
     user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
+    user.email = req.body.email ? req.body.email.trim().toLowerCase() : user.email;
+    if (req.body.username) {
+      user.username = req.body.username.trim().toLowerCase();
+    }
     user.role = req.body.role || user.role;
     user.dept = req.body.dept || user.dept;
     if (typeof req.body.isActive === "boolean") {
@@ -81,6 +101,7 @@ router.put("/:id", authorize("admin"), async (req, res) => {
     res.json({
       _id: updatedUser._id,
       name: updatedUser.name,
+      username: updatedUser.username || (updatedUser.email ? updatedUser.email.split("@")[0] : ""),
       email: updatedUser.email,
       role: updatedUser.role,
       dept: updatedUser.dept,

@@ -1,5 +1,21 @@
 import mongoose from "mongoose";
 
+const itemSchema = new mongoose.Schema(
+  {
+    type: { type: String, default: "In Budget" },
+    category: { type: String },
+    note: { type: String },
+    currency: { type: String, default: "NGN" },
+    payMode: { type: String, default: "bank" },
+    card: { type: Number, default: 0 },
+    cash: { type: Number, default: 0 },
+    bank: { type: Number, default: 0 },
+    vat: { type: Number, default: 0 },
+    total: { type: Number, default: 0 },
+  },
+  { _id: false, strict: false }
+);
+
 const claimSchema = new mongoose.Schema(
   {
     claimId: {
@@ -32,9 +48,12 @@ const claimSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    time: {
+      type: String,
+    },
     status: {
       type: String,
-      enum: ["new", "verified", "approved_for_payment", "paid", "rejected"],
+      enum: ["new", "reviewed", "verified", "approved_for_payment", "paid", "rejected"],
       default: "new",
     },
     companyName: {
@@ -50,18 +69,25 @@ const claimSchema = new mongoose.Schema(
         chg: Boolean,
       },
     ],
-    items: [
+    items: [itemSchema],
+    beneficiaries: [
       {
-        type: String,
-        category: String,
-        note: String,
-        currency: String,
-        payMode: String,
-        card: Number,
-        cash: Number,
-        bank: Number,
-        vat: Number,
+        name: String,
+        purposes: [
+          {
+            purpose: String,
+            amount: Number,
+          },
+        ],
         total: Number,
+      },
+    ],
+    documents: [
+      {
+        name: String,
+        size: { type: mongoose.Schema.Types.Mixed },
+        mimeType: String,
+        data: { type: String, select: true },  // base64 data URL
       },
     ],
     note: String,

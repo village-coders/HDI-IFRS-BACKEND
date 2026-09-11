@@ -5,6 +5,8 @@ import User from "../models/User.js";
 const DEFAULT_USERS = [
   { _id: "64b1f0010000000000000001", name: "Super Admin", email: "admin@hdi.org", role: "admin", dept: "Administration", isActive: true },
   { _id: "64b1f0010000000000000002", name: "Chairman Board", email: "chairman@hdi.org", role: "chairman", dept: "Executive Office", isActive: true },
+  { _id: "64b1f0010000000000000003", name: "Account Officer", email: "accountant@hdi.org", role: "account_officer", dept: "Accounts & Finance", isActive: true },
+  { _id: "64b1f0010000000000000004", name: "Operations Manager", email: "manager@hdi.org", role: "manager", dept: "Operations", isActive: true },
 ];
 
 export const protect = async (req, res, next) => {

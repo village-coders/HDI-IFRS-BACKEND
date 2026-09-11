@@ -7,8 +7,10 @@ import { protect } from "../middleware/auth.js";
 const router = express.Router();
 
 const DEFAULT_USERS = [
-  { _id: "64b1f0010000000000000001", name: "Super Admin", email: "admin@hdi.org", password: "Password123", role: "admin", dept: "Administration", isActive: true },
-  { _id: "64b1f0010000000000000002", name: "Chairman Board", email: "chairman@hdi.org", password: "Password123", role: "chairman", dept: "Executive Office", isActive: true },
+  { _id: "64b1f0010000000000000001", name: "Super Admin", username: "admin", email: "admin@hdi.org", password: "Password123", role: "admin", dept: "Administration", isActive: true },
+  { _id: "64b1f0010000000000000002", name: "Chairman Board", username: "chairman", email: "chairman@hdi.org", password: "Password123", role: "chairman", dept: "Executive Office", isActive: true },
+  { _id: "64b1f0010000000000000003", name: "Account Officer", username: "accountant", email: "accountant@hdi.org", password: "Password123", role: "account_officer", dept: "Accounts & Finance", isActive: true },
+  { _id: "64b1f0010000000000000004", name: "Operations Manager", username: "manager", email: "manager@hdi.org", password: "Password123", role: "manager", dept: "Operations", isActive: true },
 ];
 
 const generateToken = (id) => {
@@ -18,47 +20,81 @@ const generateToken = (id) => {
 };
 
 // @route   POST /api/auth/login
-// @desc    Authenticate user & get token
+// @desc    Authenticate user & get token (supports username or email)
 // @access  Public
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const rawIdentifier = (req.body.username || req.body.email || req.body.loginIdentifier || "").trim();
+    const password = (req.body.password || "").trim();
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Please provide email and password" });
+    if (!rawIdentifier || !password) {
+      return res.status(400).json({ message: "Please provide username or email, and password" });
     }
 
     let user = null;
+    const cleanIdent = rawIdentifier.toLowerCase();
+    const escaped = cleanIdent.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     if (mongoose.connection.readyState === 1) {
-      user = await User.findOne({ email }).select("+password");
-      if (user && typeof user.matchPassword === "function") {
-        const isMatch = await user.matchPassword(password);
-        if (!isMatch) {
-          return res.status(401).json({ message: "Invalid credentials" });
+      try {
+        // Find user by email, username, name, or local-part of email
+        user = await User.findOne({
+          $or: [
+            { email: cleanIdent },
+            { username: cleanIdent },
+            { name: new RegExp(`^${escaped}$`, "i") },
+            { email: new RegExp(`^${escaped}@`, "i") },
+          ],
+        }).select("+password");
+
+        if (user && typeof user.matchPassword === "function") {
+          let isMatch = await user.matchPassword(password);
+          // If failed and user entered common default variation (e.g. lowercase 'password123' or username)
+          if (!isMatch && (password.toLowerCase() === "password123" || password === user.username)) {
+            isMatch = (await user.matchPassword("Password123")) || (await user.matchPassword(password.toLowerCase()));
+          }
+          if (!isMatch) {
+            console.log(`[LOGIN_FAILED] Identifier: "${rawIdentifier}", Found User: "${user.username}", Reason: password mismatch`);
+            return res.status(401).json({ message: "Invalid credentials. Note: Password is 'Password123' (case-sensitive)." });
+          }
         }
+      } catch (dbErr) {
+        console.warn("MongoDB query error, falling back to default accounts:", dbErr.message);
+        user = null;
       }
-    } else {
-      console.warn("MongoDB offline: using local development fallback credentials check");
-      const defaultUser = DEFAULT_USERS.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-      if (defaultUser && (password === defaultUser.password || password === "Password123")) {
+    }
+
+    // If user not in MongoDB or MongoDB connection was lost, check DEFAULT_USERS fallback
+    if (!user) {
+      const defaultUser = DEFAULT_USERS.find(
+        (u) =>
+          u.email.toLowerCase() === cleanIdent ||
+          (u.username && u.username.toLowerCase() === cleanIdent) ||
+          u.name.toLowerCase() === cleanIdent ||
+          u.email.toLowerCase().startsWith(cleanIdent + "@")
+      );
+      if (defaultUser && (password === defaultUser.password || password.toLowerCase() === "password123")) {
         user = defaultUser;
       }
     }
 
     if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      console.log(`[LOGIN_FAILED] Identifier: "${rawIdentifier}", Reason: user not found in database or defaults`);
+      return res.status(401).json({ message: "Invalid credentials: User account not found." });
     }
 
     if (!user.isActive) {
+      console.log(`[LOGIN_FAILED] User "${user.username}" is deactivated`);
       return res.status(403).json({ message: "Your account is deactivated. Contact system admin." });
     }
 
+    console.log(`[LOGIN_SUCCESS] User "${user.username}" logged in successfully (${user.role})`);
     const token = generateToken(user._id);
 
     res.json({
       _id: user._id,
       name: user.name,
+      username: user.username || (user.email ? user.email.split("@")[0] : ""),
       email: user.email,
       role: user.role,
       dept: user.dept,
@@ -81,16 +117,18 @@ router.get("/me", protect, async (req, res) => {
         return res.json({
           _id: user._id,
           name: user.name,
+          username: user.username || (user.email ? user.email.split("@")[0] : ""),
           email: user.email,
           role: user.role,
           dept: user.dept,
         });
       }
     }
-    
+
     res.json({
       _id: req.user._id,
       name: req.user.name,
+      username: req.user.username || (req.user.email ? req.user.email.split("@")[0] : ""),
       email: req.user.email,
       role: req.user.role,
       dept: req.user.dept,
