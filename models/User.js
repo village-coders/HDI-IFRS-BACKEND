@@ -15,6 +15,12 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    username: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true,
+    },
     password: {
       type: String,
       required: [true, "Please provide a password"],
@@ -23,8 +29,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["admin", "chairman"],
-      default: "admin",
+      enum: ["admin", "account_officer", "manager", "chairman"],
+      default: "account_officer",
     },
     dept: {
       type: String,
@@ -50,9 +56,15 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-// Match password
+// Match password (supports both bcrypt hash and plain text fallback)
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  if (!this.password || !enteredPassword) return false;
+  if (this.password === enteredPassword) return true;
+  try {
+    return await bcrypt.compare(enteredPassword, this.password);
+  } catch {
+    return false;
+  }
 };
 
 const User = mongoose.model("User", userSchema);

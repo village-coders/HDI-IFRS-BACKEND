@@ -13,7 +13,8 @@ dotenv.config();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Database connection status middleware
 app.use((req, res, next) => {
@@ -21,7 +22,7 @@ app.use((req, res, next) => {
     req.path.startsWith("/api/") &&
     req.path !== "/api/health" &&
     req.path !== "/api/auth/login" &&
-    mongoose.connection.readyState !== 1
+    mongoose.connection.readyState === 0
   ) {
     return res.status(503).json({
       message: "Database connection unavailable. Please ensure MongoDB service is running.",
@@ -43,39 +44,41 @@ app.get("/api/health", (req, res) => {
 });
 
 // Seed default users and sample data if database is empty
-// const seedInitialData = async () => {
-//   try {
-//     const userCount = await User.countDocuments();
-//     if (userCount === 0) {
-//       console.log("Seeding initial default users into MongoDB...");
-//       const defaultUsers = [
-//         { name: "Super Admin", email: "admin@hdi.org", password: "Password123", role: "admin", dept: "Administration" },
-//         { name: "Chairman Board", email: "chairman@hdi.org", password: "Password123", role: "chairman", dept: "Executive Office" },
-//       ];
+const seedInitialData = async () => {
+  try {
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      console.log("Seeding initial default users into MongoDB...");
+      const defaultUsers = [
+        { name: "Super Admin", username: "admin", email: "admin@hdi.org", password: "Password123", role: "admin", dept: "Administration" },
+        { name: "Chairman Board", username: "chairman", email: "chairman@hdi.org", password: "Password123", role: "chairman", dept: "Executive Office" },
+        { name: "Account Officer", username: "accountant", email: "accountant@hdi.org", password: "Password123", role: "account_officer", dept: "Accounts & Finance" },
+        { name: "Operations Manager", username: "manager", email: "manager@hdi.org", password: "Password123", role: "manager", dept: "Operations" },
+      ];
 
-//       for (const userData of defaultUsers) {
-//         await User.create(userData);
-//       }
-//       console.log("Default users created successfully.");
-//     }
+      for (const userData of defaultUsers) {
+        await User.create(userData);
+      }
+      console.log("Default users created successfully.");
+    }
 
-//     const claimCount = await Claim.countDocuments();
-//     if (claimCount === 0) {
-//       console.log("Seeding sample claims into MongoDB...");
-//       const sampleClaims = [
-//         { claimId: "MDOS-10049281", claimantName: "Super Admin", dept: "Administration", title: "Office IT & Supplies", amount: 45000, date: "2026-08-20", status: "new", note: "Initial claim submission for review." },
-//         { claimId: "MDOS-20491823", claimantName: "Super Admin", dept: "Administration", title: "Project Audit Logistics", amount: 120000, date: "2026-08-18", status: "verified", note: "Verified by Admin. Submitted for Chairman Review." },
-//         { claimId: "MDOS-48201938", claimantName: "Super Admin", dept: "Administration", title: "Office Consumables & Equipment", amount: 68000, date: "2026-08-12", status: "approved_for_payment", note: "Reviewed and approved by Chairman. Ready for disbursement." },
-//         { claimId: "MDOS-59302910", claimantName: "Super Admin", dept: "Administration", title: "Field Operations & Fuel", amount: 35000, date: "2026-08-05", status: "paid", note: "Payment disbursed successfully." },
-//       ];
+    const claimCount = await Claim.countDocuments();
+    if (claimCount === 0) {
+      console.log("Seeding sample claims into MongoDB...");
+      const sampleClaims = [
+        { claimId: "MDOS-10049281", claimantName: "Super Admin", dept: "Administration", title: "Office IT & Supplies", amount: 45000, date: "2026-08-20", status: "new", note: "Initial claim submission for review." },
+        { claimId: "MDOS-20491823", claimantName: "Super Admin", dept: "Administration", title: "Project Audit Logistics", amount: 120000, date: "2026-08-18", status: "verified", note: "Verified by Admin. Submitted for Chairman Review." },
+        { claimId: "MDOS-48201938", claimantName: "Super Admin", dept: "Administration", title: "Office Consumables & Equipment", amount: 68000, date: "2026-08-12", status: "approved_for_payment", note: "Reviewed and approved by Chairman. Ready for disbursement." },
+        { claimId: "MDOS-59302910", claimantName: "Super Admin", dept: "Administration", title: "Field Operations & Fuel", amount: 35000, date: "2026-08-05", status: "paid", note: "Payment disbursed successfully." },
+      ];
 
-//       await Claim.insertMany(sampleClaims);
-//       console.log("Sample claims created successfully.");
-//     }
-//   } catch (err) {
-//     console.error("Error seeding initial data:", err.message);
-//   }
-// };
+      await Claim.insertMany(sampleClaims);
+      console.log("Sample claims created successfully.");
+    }
+  } catch (err) {
+    console.error("Error seeding initial data:", err.message);
+  }
+};
 
 const PORT = process.env.PORT || 5000;
 
@@ -83,7 +86,9 @@ app.listen(PORT, () => {
   console.log(`HDI IFRS Express Backend running on port ${PORT}`);
 });
 
+let isConnecting = false;
 const connectDB = async () => {
+  if (isConnecting || mongoose.connection.readyState === 1) return;
   const mongoUri = process.env.MONGO_URI;
 
   if (!mongoUri) {
@@ -92,13 +97,20 @@ const connectDB = async () => {
   }
 
   try {
-    console.log(`Connecting to MongoDB...`);
-    await mongoose.connect(mongoUri, { dbName: "IFRS" });
+    isConnecting = true;
+    console.log("Connecting to MongoDB Atlas...");
+    await mongoose.connect(mongoUri, { dbName: "IFRS", serverSelectionTimeoutMS: 5000 });
     console.log("Connected to MongoDB successfully!");
-    // await seedInitialData();
+    await seedInitialData();
   } catch (err) {
     console.error("MongoDB Connection Error:", err.message);
-    console.warn("Please verify MONGO_URI in your backend/.env file and ensure your Ubuntu MongoDB server is accessible.");
+    console.warn("Retrying MongoDB connection in 5 seconds...");
+    setTimeout(() => {
+      isConnecting = false;
+      connectDB();
+    }, 5000);
+  } finally {
+    isConnecting = false;
   }
 };
 
