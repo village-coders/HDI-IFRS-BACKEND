@@ -197,6 +197,14 @@ router.put("/:id/status", async (req, res) => {
       actionLabel = currentStatus === "new" ? "Claim Rejected by Manager" : "Claim Rejected by Chairman Board";
     }
 
+    let actionLabel = `Status updated to ${newStatus}`;
+    if (newStatus === "reviewed") actionLabel = "Claim Reviewed & Approved by Manager";
+    else if (newStatus === "approved_for_payment") actionLabel = "Payment Authorized by Chairman Board";
+    else if (newStatus === "paid") actionLabel = "Payment Disbursed by Account Officer";
+    else if (newStatus === "rejected") {
+      actionLabel = currentStatus === "new" ? "Claim Rejected by Manager" : "Claim Rejected by Chairman Board";
+    }
+
     claim.history.push({
       action: actionLabel,
       by: req.user.name,

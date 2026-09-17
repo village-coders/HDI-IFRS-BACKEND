@@ -55,7 +55,7 @@ router.post("/login", async (req, res) => {
           }
           if (!isMatch) {
             console.log(`[LOGIN_FAILED] Identifier: "${rawIdentifier}", Found User: "${user.username}", Reason: password mismatch`);
-            return res.status(401).json({ message: "Invalid credentials. Note: Password is 'Password123' (case-sensitive)." });
+            return res.status(401).json({ message: "Invalid username or password. Please try again." });
           }
         }
       } catch (dbErr) {
@@ -80,12 +80,12 @@ router.post("/login", async (req, res) => {
 
     if (!user) {
       console.log(`[LOGIN_FAILED] Identifier: "${rawIdentifier}", Reason: user not found in database or defaults`);
-      return res.status(401).json({ message: "Invalid credentials: User account not found." });
+      return res.status(401).json({ message: "Invalid username or password. Please try again." });
     }
 
     if (!user.isActive) {
       console.log(`[LOGIN_FAILED] User "${user.username}" is deactivated`);
-      return res.status(403).json({ message: "Your account is deactivated. Contact system admin." });
+      return res.status(403).json({ message: "Your account has been deactivated. Please contact your system administrator." });
     }
 
     console.log(`[LOGIN_SUCCESS] User "${user.username}" logged in successfully (${user.role})`);
